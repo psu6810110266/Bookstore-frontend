@@ -60,6 +60,7 @@ export default function BookList(props) {
       render: (text, record) => (
       <Space>
         <Button type="primary" onClick={() => props.onLiked(record)}>Like</Button>
+        <Button type="secondary" onClick={() => props.onEdit(record)}>Edit</Button>
         <Popconfirm title="Are you sure you want to delete this book?" onConfirm={() => props.onDeleted(record.id)}>
           <Button danger type="dashed">Delete</Button>
         </Popconfirm>
