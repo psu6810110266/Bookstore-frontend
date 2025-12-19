@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import { Button, Form, Input, Alert } from 'antd';
 import axios from 'axios';
-// 1. Import useNavigate เข้ามา
 import { useNavigate } from 'react-router-dom';
 
 const URL_AUTH = "/api/auth/login"
 
-export default function LoginScreen() { // ลบ props ออกเพราะไม่ได้ใช้แล้ว
+// 1. รับ props ชื่อ onLogin เข้ามา (ใส่ปีกกา {} ครอบด้วย)
+export default function LoginScreen({ onLogin }) { 
   const [isLoading, setIsLoading] = useState(false)
   const [errMsg, setErrMsg] = useState(null)
   
-  // 2. ประกาศตัวแปร navigate เพื่อใช้เปลี่ยนหน้า
   const navigate = useNavigate();
 
   const handleLogin = async (formData) => {
@@ -22,10 +21,14 @@ export default function LoginScreen() { // ลบ props ออกเพราะ
       
       axios.defaults.headers.common = { 'Authorization': `bearer ${token}` }
       
-      // 3. แก้ไขบรรทัดนี้: ให้เก็บค่า token จริงๆ ลงไป
+      // เก็บ Token ลง LocalStorage ได้ (เอาไว้ใช้ยิง API) 
+      // แต่สถานะการ "เข้าหน้าเว็บ" เราจะใช้ State แทน
       localStorage.setItem('token', token); 
       
-      // สั่งเปลี่ยนหน้าไปหน้าแรก
+      // 2. เรียกใช้ props เพื่อบอก App.js ว่า "ล็อกอินสำเร็จแล้ว เปลี่ยน State ได้เลย"
+      onLogin(token); 
+
+      // สั่งเปลี่ยนหน้า
       navigate('/main');
 
     } catch(err) { 
@@ -37,10 +40,9 @@ export default function LoginScreen() { // ลบ props ออกเพราะ
   }
 
   return(
-    <Form
-      onFinish={handleLogin}
-      autoComplete="off">
-      {errMsg &&
+    <Form onFinish={handleLogin} autoComplete="off">
+      {/* ... (ส่วน UI ของคุณเหมือนเดิม ไม่ต้องแก้) ... */}
+       {errMsg &&
         <Form.Item>
           <Alert message={errMsg} type="error" />
         </Form.Item>
@@ -62,8 +64,8 @@ export default function LoginScreen() { // ลบ props ออกเพราะ
 
       <Form.Item>
         <Button 
-           type="primary" 
-           htmlType="submit" loading={isLoading}>
+            type="primary" 
+            htmlType="submit" loading={isLoading}>
           Submit
         </Button>
       </Form.Item>
