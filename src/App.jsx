@@ -3,19 +3,28 @@ import axios from 'axios'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginScreen from './loginscreen';
 import BookScreen from './BookScreen';
-import { useState } from 'react'; // 1. อย่าลืม import useState
+import { useState, useEffect } from 'react';
 
 axios.defaults.baseURL = "http://localhost:3000"
 
 function App() {
-  // 2. เปลี่ยนจาก localStorage เป็น State
-  // กำหนดค่าเริ่มต้นเป็น false เสมอ เพื่อให้ทุกครั้งที่รีเฟรช (App โหลดใหม่) สถานะจะเป็น "ยังไม่ล็อกอิน"
-  const [isAuthenticated, setIsAuthenticated] = useState(false); 
+  // 1. ตรวจสอบ Token ใน LocalStorage ตั้งแต่เริ่มแอพ
+  // ถ้ามี Token ค้างอยู่ (แสดงว่าเคยกด Remember) -> ให้ isAuthenticated = true
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token')); 
 
-  // สร้างฟังก์ชันสำหรับรับแจ้งว่า Login ผ่านแล้ว
+  useEffect(() => {
+    // ถ้ามี Token ในเครื่อง ให้เอามาใส่ Header รอไว้เลย (กัน Error เวลายิง API)
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+       axios.defaults.headers.common['Authorization'] = `bearer ${storedToken}`;
+    }
+  }, []);
+
+  // ฟังก์ชันนี้ทำงานเมื่อกดปุ่ม Login สำเร็จ
   const handleLoginSuccess = (token) => {
-      localStorage.setItem('token', token); // เก็บ token ไว้ใช้ยิง API (ถ้าจำเป็น)
-      setIsAuthenticated(true); // เปลี่ยนสถานะใน RAM ให้เป็น Login แล้ว
+      // อัปเดต State ทันที เพื่อให้หน้าเว็บเปลี่ยนเป็น Main
+      setIsAuthenticated(true); 
+      // หมายเหตุ: ไม่ต้องสั่ง localStorage.setItem ตรงนี้แล้ว เพราะทำใน LoginScreen แล้ว
   }
 
   return (
@@ -23,12 +32,12 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* 3. ส่งฟังก์ชัน handleLoginSuccess ไปให้หน้า LoginScreen เรียกใช้ */}
         <Route 
             path="/login" 
             element={<LoginScreen onLogin={handleLoginSuccess} />} 
         />
         
+        {/* หน้า Main */}
         <Route 
           path="/main" 
           element={isAuthenticated ? <BookScreen /> : <Navigate to="/login" />} 

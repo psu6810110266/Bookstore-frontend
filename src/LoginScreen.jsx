@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Button, Form, Input, Alert } from 'antd';
+import { Button, Form, Input, Alert, Checkbox } from 'antd'; 
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const URL_AUTH = "/api/auth/login"
 
-// 1. รับ props ชื่อ onLogin เข้ามา (ใส่ปีกกา {} ครอบด้วย)
 export default function LoginScreen({ onLogin }) { 
   const [isLoading, setIsLoading] = useState(false)
   const [errMsg, setErrMsg] = useState(null)
@@ -13,59 +12,81 @@ export default function LoginScreen({ onLogin }) {
   const navigate = useNavigate();
 
   const handleLogin = async (formData) => {
+    // 1. เช็คค่าก่อนว่า checkbox ส่งมาถูกไหม
+    console.log("ข้อมูลทั้งหมดจาก Form:", formData);
+    
     try {
       setIsLoading(true)
       setErrMsg(null)
-      const response = await axios.post(URL_AUTH, formData);
+
+      // ------------------------------------------------------------------
+      // แก้ไขจุดที่ทำให้ Error 400: แยกข้อมูลก่อนส่ง
+      // ------------------------------------------------------------------
+      // ความหมาย: ดึงค่า 'remember' เก็บไว้ใช้เอง และเอาค่าที่เหลือ (User/Pass) ใส่ตัวแปร payload
+      const { remember, ...payload } = formData; 
+
+      console.log("ข้อมูลที่จะส่ง Server (payload):", payload); // เช็คดูว่าจะไม่มี remember ติดไป
+
+      // ส่งเฉพาะ payload (ที่มีแค่ username, password) ไปหา Server
+      const response = await axios.post(URL_AUTH, payload); 
+      
       const token = response.data.access_token;
       
       axios.defaults.headers.common = { 'Authorization': `bearer ${token}` }
       
-      // เก็บ Token ลง LocalStorage ได้ (เอาไว้ใช้ยิง API) 
-      // แต่สถานะการ "เข้าหน้าเว็บ" เราจะใช้ State แทน
-      localStorage.setItem('token', token); 
+      // ----------------------------------------------------
+      // ใช้ค่า remember ที่แยกออกมา ตัดสินใจว่าจะเซฟไหม
+      // ----------------------------------------------------
+      if (remember === true) {
+         console.log("เลือก Remember Me -> บันทึก Token ลงเครื่อง");
+         localStorage.setItem('token', token);
+      } else {
+         console.log("ไม่เลือก Remember Me -> ไม่บันทึก (ใช้แค่ใน RAM)");
+         localStorage.removeItem('token'); 
+      }
       
-      // 2. เรียกใช้ props เพื่อบอก App.js ว่า "ล็อกอินสำเร็จแล้ว เปลี่ยน State ได้เลย"
+      // ส่ง token ไปบอก App.js
       onLogin(token); 
 
-      // สั่งเปลี่ยนหน้า
       navigate('/main');
 
     } catch(err) { 
       console.log(err)
-      setErrMsg(err.message)
+      // เพิ่มการแจ้งเตือนถ้าเป็น Error 400
+      if (err.response && err.response.status === 400) {
+        setErrMsg("Error 400: ข้อมูลที่ส่งไปไม่ถูกต้อง (Server ปฏิเสธ)");
+      } else {
+        setErrMsg(err.message);
+      }
     } finally { 
       setIsLoading(false) 
     }
   }
 
   return(
-    <Form onFinish={handleLogin} autoComplete="off">
-      {/* ... (ส่วน UI ของคุณเหมือนเดิม ไม่ต้องแก้) ... */}
-       {errMsg &&
-        <Form.Item>
-          <Alert message={errMsg} type="error" />
-        </Form.Item>
+    <Form
+      onFinish={handleLogin}
+      autoComplete="off"
+      initialValues={{ remember: false }} 
+    >
+      {errMsg &&
+        <Form.Item> <Alert message={errMsg} type="error" /> </Form.Item>
       }
 
-      <Form.Item
-        label="Username"
-        name="username"
-        rules={[{required: true,}]}>
+      <Form.Item label="Username" name="username" rules={[{required: true,}]}>
         <Input />
       </Form.Item>
       
-      <Form.Item
-        label="Password"
-        name="password"
-        rules={[{required: true},]}>
+      <Form.Item label="Password" name="password" rules={[{required: true},]}>
         <Input.Password />
       </Form.Item>
 
+      <Form.Item name="remember" valuePropName="checked">
+        <Checkbox>Remember me</Checkbox>
+      </Form.Item>
+
       <Form.Item>
-        <Button 
-            type="primary" 
-            htmlType="submit" loading={isLoading}>
+        <Button type="primary" htmlType="submit" loading={isLoading}>
           Submit
         </Button>
       </Form.Item>
