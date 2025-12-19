@@ -1,25 +1,39 @@
 import { useState } from 'react';
 import { Button, Form, Input, Alert } from 'antd';
-import axios from 'axios'
+import axios from 'axios';
+// 1. Import useNavigate เข้ามา
+import { useNavigate } from 'react-router-dom';
 
 const URL_AUTH = "/api/auth/login"
 
-export default function LoginScreen(props) {
+export default function LoginScreen() { // ลบ props ออกเพราะไม่ได้ใช้แล้ว
   const [isLoading, setIsLoading] = useState(false)
   const [errMsg, setErrMsg] = useState(null)
+  
+  // 2. ประกาศตัวแปร navigate เพื่อใช้เปลี่ยนหน้า
+  const navigate = useNavigate();
 
   const handleLogin = async (formData) => {
-    try{
+    try {
       setIsLoading(true)
       setErrMsg(null)
       const response = await axios.post(URL_AUTH, formData);
       const token = response.data.access_token;
+      
       axios.defaults.headers.common = { 'Authorization': `bearer ${token}` }
-      props.onLoginSuccess();
+      
+      // 3. แก้ไขบรรทัดนี้: ให้เก็บค่า token จริงๆ ลงไป
+      localStorage.setItem('token', token); 
+      
+      // สั่งเปลี่ยนหน้าไปหน้าแรก
+      navigate('/main');
+
     } catch(err) { 
       console.log(err)
       setErrMsg(err.message)
-    } finally { setIsLoading(false) }
+    } finally { 
+      setIsLoading(false) 
+    }
   }
 
   return(
