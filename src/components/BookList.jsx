@@ -74,6 +74,7 @@ export default function BookList(props) {
       rowKey="id" 
       dataSource={props.data} 
       columns={columns} 
+      pagination={false}
       rowClassName={(record, index) => {
         if(record.stock < 30) {
           return "red-row";
